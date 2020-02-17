@@ -351,9 +351,14 @@ function run_testcase() {
 		# If error code is 1, then there was only a difference in error ouput
 		# If the error code is 2, then there was only a difference in output
 		# Because of this you can remove one of the temp outputs
+		# DONT EVEN ASK ME WHAT I AM DOING HERE, WILL CHANGE IN FUTURE
 		if [ $error_rc -eq 1 ]; then
 			rm -f $actual_out_file
+		elif [ $error_rc -eq 5 ]; then
+			rm -f $actual_out_file
 		elif [ $error_rc -eq 2 ]; then
+			rm -f $actual_err_file
+		elif [ $error_rc -eq 6 ]; then
 			rm -f $actual_err_file
 		fi
     else
@@ -408,7 +413,7 @@ function print_report() {
 }
 
 # ============= Running the testcases ==================
-
+#TODO: Add flags
 for testcase_dir in $(ls ${PWD}/testcases/ 2>/dev/null); do 
 	# Getting the ini_file to load the testcase
 	ini_file=$(ls ${PWD}/testcases/$testcase_dir/*.ini)
