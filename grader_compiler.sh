@@ -186,6 +186,8 @@ function equal_error_line() {
 	echo $expected_line_num > $expected_line_num.out
 	echo $actual_line_num > $actual_line_num.out
 	diff_out=$(diff -w -B $expected_line_num.out $actual_line_num.out)
+	rm -f $expected_line_num.out
+	rm -f $actual_line_num.out
 	if [ "$diff_out" != "" ]; then
 		echo "diff output = $diff_out"
 		return 1
