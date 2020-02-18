@@ -168,11 +168,8 @@ function equal_error_line() {
     expected_output=$1 	# Expected error output file
     actual_output=$2 	# Actual error output file
 
-    kwError_regex='(E|e)(R|r)(R|r)(O|o)(R|r)'
-	kwLine_regex='(L|l)(I|i)(N|n)(E|e) [0-9]*'
-
 	# It is necessary for the expected output to contain 'error'
-	if [ "$(grep -P $kwError_regex $expected_output)" = "" ]; then
+	if [ "$(grep -o "[Ee][Rr][Rr][Oo][Rr]" $expected_output)" = "" ]; then
 		throw_fatal_err "Expected Error Output Is Missing 'error' Sequence"
 	fi
 
@@ -184,9 +181,13 @@ function equal_error_line() {
 
 	# Checking if the expected and actual line numbers within the error are equal
     actual_line_num=$(grep -o "[Ll][Ii][Nn][Ee] [0-9]*" $actual_output | cut -d" " -f 2)
-	if [ "$actual_line_num" = "" ]; then
-		return 1
-	elif [ $expected_line_num = $actual_line_num ]; then
+
+	# Temp fix. Seems to be some weird spacing issues that I dont want to deal with right now
+	echo $expected_line_num > $expected_line_num.out
+	echo $actual_line_num > $actual_line_num.out
+	diff_out=$(diff -w -B $expected_line_num.out $actual_line_num.out)
+	if [ "$diff_out" != "" ]; then
+		echo "diff output = $diff_out"
 		return 1
 	fi
 	return 0
@@ -252,7 +253,9 @@ function valid_err_output() {
 	# Checking for an expected error output and actual program error output
     if [[ -s $actual_err_file && -s $expected_err_file ]]; then
 		equal_error_line $expected_err_file $actual_err_file
-		if [ "$?" -ne 0 ]; then 
+		line_chck_output=$?
+		if [ "$line_chck_output" -ne 0 ]; then 
+			printf "line error $line_chck_output"	
             output_msg="Expected Error Line Number Does Not Match Actual Error Line Number"
         fi
     elif [ -s "$actual_err_file" ]; then # The program should not produced errors, but it did.
