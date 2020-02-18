@@ -10,7 +10,7 @@ TEST_FILE_EXT_IN="cmm"
 TEST_FILE_EXT_OUT="out"
 TEST_FILE_EXT_ERR="err"
 
-TESTCASES_PATH="./testcases/"
+TESTCASES_PATH="./testcases/" # SHOULD NOT CHANGE UNLESS YOU NOW WHAT YOU ARE DOING
 
 # ==================================================================
 # ==================================================================
@@ -65,24 +65,24 @@ function run_make() {
 	make_clean=$2 # Used to clean the result of running make
 
 	# Checking that the executable has -Werror and -Wall enabled
-	if [[ $(grep -P "$make_target:" "${PWD}/Makefile" | grep -P ".*-W(error|all).*-W(error|all)") ]]; then
+	if [[ $(grep -P "$make_target:" "./Makefile" | grep -P ".*-W(error|all).*-W(error|all)") ]]; then
 		throw_fatal_err "-Werror and -Wall Needs To Be Enabled"
 	fi
 
 	# Checking that the make target is in the Makefile
-	if [[ $(grep "$make_target" "${PWD}/Makefile") == "" ]]; then
+	if [[ $(grep "$make_target" "./Makefile") == "" ]]; then
 		throw_fatal_err "Makefile Does Not Contain The Target '$make_target'"
 	fi
 
 	# Checking that the make clean is in the Makefile
-	if [[ $(grep "$make_clean" "${PWD}/Makefile") == "" ]]; then
+	if [[ $(grep "$make_clean" "./Makefile") == "" ]]; then
 		throw_fatal_err "Makefile Does Not Contain Clean '$make_clean'"
 	fi
 
-	for src_file in $(ls ${PWD}*.c 2>/dev/null); do touch ${src_file}; done
+	for src_file in $(ls .*.c 2>/dev/null); do touch ${src_file}; done
 
 	# Making sure that make did not throw any errors
-	(cd ${PWD} && make "$make_target") >/dev/null 2>/dev/null
+	(cd . && make "$make_target") >/dev/null 2>/dev/null
 	if [[ "$?" -ne 0 ]]; then
 		throw_fatal_err "Program Contains Errors / Warnings"
 	fi
@@ -134,14 +134,15 @@ function passed_dir_testcases() {
 function run_dir_testcases() {
 	dir_path=$1
 	driver=$2
-	print=$3 # "true" / "false"
+	cmdline_args=$3
+	print=$4 # "true" / "false"
 	err_code=0 # Used to indicate a pass/fail of the whole directory
 
 	printf "\n${BRN}----- Running Testcases In Directory '$(basename $dir_path)' -----${NC}"
 
 	for testcase in $(ls ${dir_path}/*.${TEST_FILE_EXT_IN} 2>/dev/null) # Getting each testcase
 	do
-		run_testcase $testcase $driver $print
+		run_testcase "$testcase" "$driver" "$cmdline_args" "$print"
         if [ $? -ne 0 ]; then
             err_code=1
         else
@@ -308,7 +309,8 @@ function valid_output() {
 function run_testcase() {
 	testcase=$1		# EX ./testcases/testcase1.cmm
 	executable=$2 	# EX ./<exec name>
-	print=$3		# EX "true" or "false"
+	cmdline_args=$3
+	print=$4		# EX "true" or "false"
 
 	expected_out_file=${testcase%.*}.$TEST_FILE_EXT_OUT 	# Output that is expected
 	expected_err_file=${testcase%.*}.$TEST_FILE_EXT_ERR		# Error output that is expected
@@ -316,7 +318,7 @@ function run_testcase() {
 	actual_err_file=${testcase%.*}.tmp.$TEST_FILE_EXT_ERR	# Error ouutput resulting from program execution
 
 	# Each testcase has 3 seconds to run before timeout to prevent infinite loops
-	timeout 3s "${PWD}/$executable" < $testcase > $actual_out_file 2> $actual_err_file
+	timeout 3s "./$executable" "$cmdline_args" < $testcase > $actual_out_file 2> $actual_err_file
 	actual_rc=$?
 	
 	error_rc=0
@@ -414,9 +416,9 @@ function print_report() {
 
 # ============= Running the testcases ==================
 #TODO: Add flags
-for testcase_dir in $(ls ${PWD}/testcases/ 2>/dev/null); do 
+for testcase_dir in $(ls $TESTCASES_PATH 2>/dev/null); do 
 	# Getting the ini_file to load the testcase
-	ini_file=$(ls ${PWD}/testcases/$testcase_dir/*.ini)
+	ini_file=$(ls $TESTCASES_PATH$testcase_dir/*.ini)
 	if [ "$(grep -o "execute=true" "$ini_file")" == "" ]; then
 		continue
 	fi
@@ -424,8 +426,11 @@ for testcase_dir in $(ls ${PWD}/testcases/ 2>/dev/null); do
 	make_target=$(grep "target=" $ini_file | cut -d '=' -f 2)
 	make_clean=$(grep "clean=" $ini_file | cut -d '=' -f 2)
 	print=$(grep "print=" $ini_file | cut -d '=' -f 2)
+	cmdline_args=$(grep "cmdline_args=" $ini_file | cut -d '=' -f 2)
+
+	### DONT TOUCH NICHOLAS ###
 	run_make "$make_target" "$make_clean"
-	run_dir_testcases "${PWD}/testcases/$testcase_dir" "$executable" "$print"
+	run_dir_testcases "$TESTCASES_PATH$testcase_dir" "$executable" "$cmdline_args" "$print"
 	(make "$make_clean") >/dev/null
 done
 
