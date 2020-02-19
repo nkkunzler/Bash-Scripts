@@ -64,11 +64,6 @@ function run_make() {
 	make_target=$1 # Used to generate the executable
 	make_clean=$2 # Used to clean the result of running make
 
-	# Checking that the executable has -Werror and -Wall enabled
-	if [[ $(grep -P "$make_target:" "./Makefile" | grep -P ".*-W(error|all).*-W(error|all)") ]]; then
-		throw_fatal_err "-Werror and -Wall Needs To Be Enabled"
-	fi
-
 	# Checking that the make target is in the Makefile
 	if [[ $(grep "$make_target" "./Makefile") == "" ]]; then
 		throw_fatal_err "Makefile Does Not Contain The Target '$make_target'"
@@ -347,7 +342,7 @@ function run_testcase() {
 	if [ -s "$expected_err_file" ]; then
 		expected_rc="$(tail -n 1 $expected_err_file | grep -o "[0-9]*")"
 	fi
-	if [ $actual_rc -ne $expected_rc ]; then
+	if [ "$actual_rc" != "$expected_rc" ]; then
         err_message="${err_message}\nExpected a return code of '$expected_rc'. Actual return code '$actual_rc'\n"
 		error_rc=$((error_rc+4))
 	fi
@@ -420,7 +415,6 @@ function print_report() {
 }
 
 # ============= Running the testcases ==================
-#TODO: Add flags
 for testcase_dir in $(ls $TESTCASES_PATH 2>/dev/null); do 
 	# Getting the ini_file to load the testcase
 	ini_file=$(ls $TESTCASES_PATH$testcase_dir/*.ini)
