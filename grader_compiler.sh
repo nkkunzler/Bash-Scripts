@@ -115,11 +115,9 @@ function passed_dir_testcases() {
 # Global Vars:
 #	pass: The number of testcases passing 
 # Arguments:
-#	dir_path: 	String indicating the path to the directory 
-#				containing the testcases
-#	executable:	String indicating which clean make will execute
-#	print:		String boolean indicating whether to print the 
-#				pass/fail status of each testcase. 
+#	main_dir_path: 	String indicating the path to the directory 
+#					containing the testcases
+
 # Post-Cond:	If print is "true", than all testcase status within
 #				the specified directory is display; otherwise, an
 #				overview report of pass/fail is displayed.
@@ -127,31 +125,48 @@ function passed_dir_testcases() {
 # Returns: None
 #######################################
 function run_dir_testcases() {
-	dir_path=$1
-	driver=$2
-	cmdline_args=$3
-	print=$4 # "true" / "false"
-	err_code=0 # Used to indicate a pass/fail of the whole directory
+	main_dir_path=$1
 
-	printf "\n${BRN}----- Running Testcases In Directory '$(basename $dir_path)' -----${NC}"
+	printf "\n${BRN}----- Running Testcases In Directory '$(basename $main_dir_path)' -----${NC}"
 
-	for testcase in $(ls ${dir_path}/*.${TEST_FILE_EXT_IN} 2>/dev/null) # Getting each testcase
-	do
-		run_testcase "$testcase" "$driver" "$cmdline_args" "$print"
-        if [ $? -ne 0 ]; then
-            err_code=1
-        else
-            pass=$((pass+1))
-        fi
+	# Finding all the .ini files
+	for ini_file in $(find $main_dir_path -type f -name "*.ini"); do
+		dir_path=${ini_file%/*.ini}
+		if [ "$(grep -o "execute=true" $ini_file)" == "" ]; then
+			continue
+		fi
+		executable=$(grep "executable=" $ini_file | cut -d '=' -f 2)
+		make_target=$(grep "target=" $ini_file | cut -d '=' -f 2)
+		make_clean=$(grep "clean=" $ini_file | cut -d '=' -f 2)
+		print=$(grep "print=" $ini_file | cut -d '=' -f 2)
+		cmdline_args=$(grep "cmdline_args=" $ini_file | cut -d '=' -f 2)
+
+		### DONT TOUCH NICHOLAS ###
+		run_make "$make_target" "$make_clean"
+
+		# Running all the testcases located in directories that contain .ini files
+		err_code=0
+		for testcase in $(ls $dir_path/*.${TEST_FILE_EXT_IN} 2>/dev/null) # Getting each testcase
+		do
+			run_testcase "$testcase" "$executable" "$cmdline_args" "$print"
+			if [ $? -ne 0 ]; then
+				err_code=1
+			else
+				pass=$((pass+1))
+			fi
+		done
+		(make "$make_clean") >/dev/null
+
+		# printing the results of running the testcases
+		# If indicated not to print out the testcases, give a final report
+		# indicating if all testcases in the directory passed or failed
+		if [ $err_code -eq 0 ]; then 
+			passed_dir_testcases $(basename $dir_path)
+		else
+			failed_dir_testcases $(basename $dir_path)
+		fi
 	done
 
-	# If indicated not to print out the testcases, give a final report
-	# indicating if all testcases in the directory passed or failed
-	if [ $err_code -eq 0 ]; then 
-		passed_dir_testcases $(basename $dir_path)
-	else
-		failed_dir_testcases $(basename $dir_path)
-	fi
 } 
 
 #######################################
@@ -414,24 +429,16 @@ function print_report() {
 	printf "***********************************${NC}"
 }
 
-# ============= Running the testcases ==================
-for testcase_dir in $(ls $TESTCASES_PATH 2>/dev/null); do 
-	# Getting the ini_file to load the testcase
-	ini_file=$(ls $TESTCASES_PATH$testcase_dir/*.ini)
-	if [ "$(grep -o "execute=true" "$ini_file")" == "" ]; then
-		continue
-	fi
-	executable=$(grep "executable=" $ini_file | cut -d '=' -f 2)
-	make_target=$(grep "target=" $ini_file | cut -d '=' -f 2)
-	make_clean=$(grep "clean=" $ini_file | cut -d '=' -f 2)
-	print=$(grep "print=" $ini_file | cut -d '=' -f 2)
-	cmdline_args=$(grep "cmdline_args=" $ini_file | cut -d '=' -f 2)
+function execute_testcases() {
+	init_path=$1
 
-	### DONT TOUCH NICHOLAS ###
-	run_make "$make_target" "$make_clean"
-	run_dir_testcases "$TESTCASES_PATH$testcase_dir" "$executable" "$cmdline_args" "$print"
-	(make "$make_clean") >/dev/null
-done
+	for main_dir in $(ls "$init_path"); do
+		run_dir_testcases $init_path$main_dir
+	done
+}
+
+# ============= Running the testcases ==================
+execute_testcases $TESTCASES_PATH
 
 print_report
 exit 0
