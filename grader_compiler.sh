@@ -425,6 +425,13 @@ function print_report() {
 		else
 			printf "${BRN}* score: \t${RED}$score${BRN} \x25\n" #\x25 = '%' symbol
 		fi
+
+		if [[ $score -eq 100 ]]; then
+			echo "100%"
+			rc=0;
+		else
+			rc=1;
+		fi
 	fi
 	printf "***********************************${NC}"
 }
@@ -441,4 +448,4 @@ function execute_testcases() {
 execute_testcases $TESTCASES_PATH
 
 print_report
-exit 0
+exit $rc
