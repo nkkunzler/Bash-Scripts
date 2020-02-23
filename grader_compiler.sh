@@ -127,7 +127,6 @@ function passed_dir_testcases() {
 function run_dir_testcases() {
 	main_dir_path=$1
 
-	printf "\n${BRN}----- Running Testcases In Directory '$(basename $main_dir_path)' -----${NC}"
 
 	# Finding all the .ini files
 	for ini_file in $(find $main_dir_path -type f -name "*.ini"); do
@@ -135,6 +134,7 @@ function run_dir_testcases() {
 		if [ "$(grep -o "execute=true" $ini_file)" == "" ]; then
 			continue
 		fi
+		printf "\n${BRN}----- Running Testcases In Directory '$(basename $main_dir_path)' -----${NC}"
 		executable=$(grep "executable=" $ini_file | cut -d '=' -f 2)
 		make_target=$(grep "target=" $ini_file | cut -d '=' -f 2)
 		make_clean=$(grep "clean=" $ini_file | cut -d '=' -f 2)
@@ -193,11 +193,11 @@ function equal_error_line() {
     actual_line_num=$(grep -o "[Ll][Ii][Nn][Ee] [0-9]*" $actual_output | cut -d" " -f 2)
 
 	# Temp fix. Seems to be some weird spacing issues that I dont want to deal with right now
-	echo $expected_line_num > $expected_line_num.out
-	echo $actual_line_num > $actual_line_num.out
-	diff_out=$(diff -w -B $expected_line_num.out $actual_line_num.out)
-	rm -f $expected_line_num.out
-	rm -f $actual_line_num.out
+	echo $expected_line_num > "$expected_line_num_".out
+	echo $actual_line_num > "$actual_line_num_".out
+	diff_out=$(diff -w -B "$expected_line_num_.out" "$actual_line_num_.out")
+	rm -f "$expected_line_num_".out
+	rm -f "$actual_line_num_".out
 	if [ "$diff_out" != "" ]; then
 		echo "diff output = $diff_out"
 		return 1
@@ -427,7 +427,6 @@ function print_report() {
 		fi
 
 		if [[ $score -eq 100 ]]; then
-			echo "100%"
 			rc=0;
 		else
 			rc=1;
