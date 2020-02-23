@@ -127,14 +127,17 @@ function passed_dir_testcases() {
 function run_dir_testcases() {
 	main_dir_path=$1
 
-
+	printed=0
 	# Finding all the .ini files
 	for ini_file in $(find $main_dir_path -type f -name "*.ini"); do
 		dir_path=${ini_file%/*.ini}
 		if [ "$(grep -o "execute=true" $ini_file)" == "" ]; then
 			continue
 		fi
-		printf "\n${BRN}----- Running Testcases In Directory '$(basename $main_dir_path)' -----${NC}"
+		if [ $printed -eq 0 ]; then
+			printf "\n${BRN}----- Running Testcases In Directory '$(basename $main_dir_path)' -----${NC}"
+			printed=1
+		fi
 		executable=$(grep "executable=" $ini_file | cut -d '=' -f 2)
 		make_target=$(grep "target=" $ini_file | cut -d '=' -f 2)
 		make_clean=$(grep "clean=" $ini_file | cut -d '=' -f 2)
